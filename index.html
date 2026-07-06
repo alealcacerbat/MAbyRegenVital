@@ -416,12 +416,13 @@ body { background: #111; display: flex; justify-content: center; align-items: ce
     <div class="s01-tagline">Acompañamiento médico real. Nutrición inteligente. Tu cuerpo, tu ritmo.</div>
     <div class="s01-btns">
       <button class="btn btn-gold" onclick="go('s02')">Comenzar ahora</button>
-      <button class="btn btn-ghost" onclick="loginPaciente()">Ya tengo cuenta</button>
+      <button class="btn btn-ghost" onclick="go('s01-login')">Ya tengo cuenta</button>
     </div>
     <div style="margin-top:20px;font-size:11px;color:var(--muted2);text-align:center;">
       Dr. Martín Alfaro · Médico Especialista en<br/>Nutrición y Obesidad
     </div>
-    <div style="margin-top:8px;font-size:10px;color:var(--night3);text-align:center;">v5 · 1jul</div>
+    <div style="font-size:10px;color:var(--muted2);text-align:center;margin-top:4px;cursor:pointer;" onclick="cerrarSesion()">Cerrar sesión</div>
+    <div style="margin-top:8px;font-size:10px;color:var(--night3);text-align:center;">v6 · 6jul</div>
   </div>
 </div>
 
@@ -1378,8 +1379,10 @@ async function registrarPaciente() {
 
     // Guardar sesión
     sesion.paciente_id = userId;
+    sesion.token = authData.access_token;
     sesion.nombre = nombre;
     sesion.apodo = nombre.split(' ')[0];
+    guardarSesionLocal(authData.access_token, userId, nombre);
 
     // Actualizar home con nombre real
     actualizarHome();
@@ -1402,9 +1405,14 @@ async function registrarPaciente() {
 // LOGIN
 // ══════════════════════════════════════════════
 async function loginPaciente() {
-  const email    = prompt('Tu email:');
-  const password = prompt('Tu contraseña:');
-  if (!email || !password) return;
+  const emailEl    = document.getElementById('login-email');
+  const passwordEl = document.getElementById('login-password');
+  const email    = emailEl?.value?.trim();
+  const password = passwordEl?.value?.trim();
+
+  if (!email || !password) {
+    toast('Completá email y contraseña', 'error'); return;
+  }
 
   showLoading('Iniciando sesión...');
   try {
@@ -1417,14 +1425,22 @@ async function loginPaciente() {
     if (data.error || data.error_description) throw new Error(data.error_description || data.error);
 
     const userId = data.user?.id;
+    const token = data.access_token;
 
-    // Buscar perfil
-    const perfiles = await supa('GET', 'pacientes', null, `?id=eq.${userId}&select=*`);
+    // Buscar perfil por user_id
+    const perfilesRes = await fetch(
+      `${SUPA_URL}/rest/v1/pacientes?user_id=eq.${userId}&select=*&limit=1`,
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` } }
+    );
+    const perfiles = await perfilesRes.json();
     const perfil = perfiles?.[0];
 
     sesion.paciente_id = userId;
+    sesion.token = token;
     sesion.nombre = perfil?.nombre || email.split('@')[0];
     sesion.apodo = sesion.nombre.split(' ')[0];
+    sesion.paciente_db_id = perfil?.id;
+    guardarSesionLocal(token, userId, sesion.nombre);
 
     actualizarHome();
     hideLoading();
@@ -1562,6 +1578,123 @@ function actualizarHome() {
   const drQuote = document.getElementById('dr-quote');
   if (drQuote) drQuote.textContent = `"${ap}, la consistencia que tenés es lo que hace la diferencia. Seguí así hasta la próxima consulta."`;
 }
+
+// ══════════════════════════════════════════════
+// SESIÓN PERSISTENTE
+// ══════════════════════════════════════════════
+const SESSION_KEY = 'ma_session';
+
+function guardarSesionLocal(token, userId, nombre) {
+  const data = JSON.stringify({ token, userId, nombre, ts: Date.now() });
+  try { sessionStorage.setItem(SESSION_KEY, data); } catch(e) {}
+  try {
+    // También en memoria del documento para la sesión actual
+    window._maSession = { token, userId, nombre };
+  } catch(e) {}
+}
+
+function cargarSesionLocal() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return window._maSession || null;
+}
+
+function limpiarSesionLocal() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  window._maSession = null;
+}
+
+// Verificar sesión al cargar la app
+async function verificarSesion() {
+  const sesionGuardada = cargarSesionLocal();
+  if (!sesionGuardada) return false;
+
+  try {
+    // Verificar que el token siga válido
+    const res = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': `Bearer ${sesionGuardada.token}`
+      }
+    });
+    if (!res.ok) { limpiarSesionLocal(); return false; }
+
+    const user = await res.json();
+    if (!user.id) { limpiarSesionLocal(); return false; }
+
+    // Sesión válida — cargar perfil
+    const perfiles = await fetch(
+      `${SUPA_URL}/rest/v1/pacientes?user_id=eq.${user.id}&select=*&limit=1`,
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${sesionGuardada.token}` } }
+    ).then(r => r.json());
+
+    const perfil = perfiles?.[0];
+    sesion.paciente_id = user.id;
+    sesion.token = sesionGuardada.token;
+    sesion.nombre = perfil?.nombre || sesionGuardada.nombre || user.email.split('@')[0];
+    sesion.apodo = sesion.nombre.split(' ')[0];
+    sesion.paciente_db_id = perfil?.id;
+
+    actualizarHome();
+    go('s04');
+    return true;
+
+  } catch(e) {
+    limpiarSesionLocal();
+    return false;
+  }
+}
+
+// Inicializar app — verificar sesión al cargar
+window.addEventListener('load', async () => {
+  const tieneSesion = await verificarSesion();
+  if (!tieneSesion) go('s01');
+});
+
+// ══════════════════════════════════════════════
+// LOGOUT
+// ══════════════════════════════════════════════
+function cerrarSesion() {
+  limpiarSesionLocal();
+  sesion = { paciente_id: null, nombre: null, apodo: null, token: null, paciente_db_id: null };
+  go('s01');
+  toast('Sesión cerrada');
+}
 </script>
+<!-- ════════════════════════════════════════════
+     S01-LOGIN — PANTALLA DE LOGIN
+════════════════════════════════════════════ -->
+<div class="screen" id="s01-login" style="background:var(--night);">
+  <div style="flex:1;display:flex;flex-direction:column;padding:48px 32px 32px;">
+    <button class="back-btn" onclick="go('s01')" style="align-self:flex-start;margin-bottom:24px;">←</button>
+    <div style="font-family:var(--serif);font-size:28px;color:var(--gold);font-weight:700;margin-bottom:6px;">Bienvenido de vuelta</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:32px;">Ingresá con tu cuenta MA by RegenVital</div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;">Email</div>
+        <input class="input-field" id="login-email" type="email" placeholder="tu@email.com"
+          style="background:var(--night2);border-color:var(--night3);color:var(--cream);"/>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;">Contraseña</div>
+        <input class="input-field" id="login-password" type="password" placeholder="Tu contraseña"
+          style="background:var(--night2);border-color:var(--night3);color:var(--cream);"/>
+      </div>
+    </div>
+
+    <div style="flex:1;"></div>
+
+    <button class="btn btn-gold" onclick="loginPaciente()" style="margin-top:24px;">
+      Ingresar →
+    </button>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:14px;">
+      ¿No tenés cuenta? <span style="color:var(--gold);cursor:pointer;" onclick="go('s02')">Registrate</span>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
