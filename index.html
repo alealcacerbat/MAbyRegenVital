@@ -555,7 +555,7 @@ body { background: #111; display: flex; justify-content: center; align-items: ce
     <!-- AI message -->
     <div class="card-dark" style="padding:16px;">
       <div style="font-size:10px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:8px;">🤖 Coach MA</div>
-      <div style="font-size:14px;color:var(--cream);line-height:1.6;">Hola Lucía, hoy entrenaste 45 min. Te propongo una cena rica en proteínas para recuperar bien. ¿La vemos?</div>
+      <div style="font-size:14px;color:var(--cream);line-height:1.6;" id="coach-home-msg">Hola, hoy registraste 3 comidas. ¿Querés ver una sugerencia para la cena?</div>
       <button class="btn btn-gold" style="margin-top:12px;padding:10px;" onclick="go('s08')">Ver sugerencia →</button>
     </div>
 
@@ -890,7 +890,7 @@ body { background: #111; display: flex; justify-content: center; align-items: ce
     </div>
     <div style="background:rgba(232,160,48,.08);border:1px solid rgba(232,160,48,.2);border-radius:14px;padding:16px;">
       <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Dr. Alfaro dice</div>
-      <div style="font-size:14px;color:var(--night2);line-height:1.6;font-style:italic;">"Lucía, vas muy bien. La consistencia que tenés es lo que hace la diferencia. Seguí así hasta la próxima consulta."</div>
+      <div style="font-size:14px;color:var(--night2);line-height:1.6;font-style:italic;" id="dr-quote">"La consistencia que tenés es lo que hace la diferencia. Seguí así hasta la próxima consulta."</div>
     </div>
   </div>
   <div class="nav-bar" style="position:absolute;bottom:0;">
@@ -967,19 +967,19 @@ body { background: #111; display: flex; justify-content: center; align-items: ce
 
     <div class="ai-msg-card">
       <div class="ai-msg-tag">🌅 Buenos días</div>
-      <div class="ai-msg-text">"Hola Lucía, arrancó un nuevo día. Sin presión — si podés, tomá agua antes del café. Pequeños hábitos, grandes resultados."</div>
+      <div class="ai-msg-text" id="coach-msg-manana">"Arrancó un nuevo día. Sin presión — si podés, tomá agua antes del café. Pequeños hábitos, grandes resultados."</div>
       <div class="ai-msg-time">Hoy · 7:30 hs · vía WhatsApp</div>
     </div>
 
     <div class="ai-msg-card">
       <div class="ai-msg-tag">🔥 Racha</div>
-      <div class="ai-msg-text">"¡8 días seguidos! Eso no es suerte, es decisión. El Dr. Alfaro lo vio y está muy contento con tu progreso."</div>
+      <div class="ai-msg-text" id="coach-msg-racha">"¡Días seguidos! Eso no es suerte, es decisión. El Dr. Alfaro lo vio y está muy contento con tu progreso."</div>
       <div class="ai-msg-time">Ayer · 20:00 hs</div>
     </div>
 
     <div class="ai-msg-card">
       <div class="ai-msg-tag">🌙 Buenas noches</div>
-      <div class="ai-msg-text">"Antes de dormir, ¿registraste la cena? Si ya lo hiciste, descansá bien. Mañana es otro día para seguir construyendo."</div>
+      <div class="ai-msg-text" id="coach-msg-noche">"Antes de dormir, ¿registraste la cena? Si ya lo hiciste, descansá bien. Mañana es otro día para seguir construyendo."</div>
       <div class="ai-msg-time">Ant. · 21:30 hs</div>
     </div>
 
@@ -1012,7 +1012,7 @@ body { background: #111; display: flex; justify-content: center; align-items: ce
       <span style="font-family:var(--serif);font-size:17px;color:var(--gold);font-weight:700;">Mi plan</span>
     </div>
     <div class="plan-badge">✦ MA by RegenVital</div>
-    <div class="plan-name">Plan Activo — Lucía</div>
+    <div class="plan-name" id="plan-nombre">Plan Activo</div>
     <div class="plan-sub">Dr. Martín Alfaro · Nutrición y Obesidad</div>
     <div class="plan-stats">
       <div class="plan-stat"><div class="plan-stat-val">1.600</div><div class="plan-stat-lbl">kcal/día</div></div>
@@ -1528,11 +1528,39 @@ async function guardarCuerpo() {
 // ══════════════════════════════════════════════
 function actualizarHome() {
   const greeting = document.querySelector('.s04-name');
-  if (greeting && sesion.apodo) {
-    const hora = new Date().getHours();
-    const saludo = hora < 12 ? '☀️' : hora < 19 ? '🌤️' : '🌙';
-    greeting.textContent = `${sesion.apodo} ${saludo}`;
-  }
+  if (!sesion.apodo) return;
+
+  const ap = sesion.apodo;
+  const hora = new Date().getHours();
+  const saludo = hora < 12 ? '☀️' : hora < 19 ? '🌤️' : '🌙';
+  const saludoTexto = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+
+  // Home greeting
+  if (greeting) greeting.textContent = `${ap} ${saludo}`;
+  const greetingLabel = document.querySelector('.s04-greeting');
+  if (greetingLabel) greetingLabel.textContent = `${saludoTexto},`;
+
+  // Coach home message
+  const coachHome = document.getElementById('coach-home-msg');
+  if (coachHome) coachHome.textContent = `Hola ${ap}, registraste 3 comidas hoy. ¿Querés ver una sugerencia para la cena?`;
+
+  // Coach screen messages
+  const msgManana = document.getElementById('coach-msg-manana');
+  if (msgManana) msgManana.textContent = `"${ap}, arrancó un nuevo día. Sin presión — si podés, tomá agua antes del café. Pequeños hábitos, grandes resultados."`;
+
+  const msgRacha = document.getElementById('coach-msg-racha');
+  if (msgRacha) msgRacha.textContent = `"¡${ap}, días seguidos! Eso no es suerte, es decisión. El Dr. Alfaro lo vio y está muy contento con tu progreso."`;
+
+  const msgNoche = document.getElementById('coach-msg-noche');
+  if (msgNoche) msgNoche.textContent = `"${ap}, antes de dormir — ¿registraste la cena? Si ya lo hiciste, descansá bien. Mañana es otro día."`;
+
+  // Plan name
+  const planNombre = document.getElementById('plan-nombre');
+  if (planNombre) planNombre.textContent = `Plan Activo — ${ap}`;
+
+  // Dr quote
+  const drQuote = document.getElementById('dr-quote');
+  if (drQuote) drQuote.textContent = `"${ap}, la consistencia que tenés es lo que hace la diferencia. Seguí así hasta la próxima consulta."`;
 }
 </script>
 </body>
