@@ -513,14 +513,124 @@ body { background: #111; display: flex; justify-content: center; align-items: ce
       </div>
     </div>
     <div style="flex:1;"></div>
-    <button class="btn btn-gold" onclick="registrarPaciente()">Empezar mi plan 🎯</button>
+    <button class="btn btn-gold" onclick="go('s03b')">Siguiente → Calculador 🧮</button>
   </div>
 </div>
 
 
 <!-- ════════════════════════════════════════════
-     S04 — HOME PACIENTE
+     S03B — CALCULADOR MIFFLIN + EXCLUSIONES
 ════════════════════════════════════════════ -->
+<div class="screen" id="s03b" style="background:var(--cream);">
+  <div class="s02-header">
+    <div class="status-bar" style="color:var(--gold);padding:0;height:auto;margin-bottom:8px;">
+      <button class="back-btn" onclick="go('s03')">←</button>
+      <span style="font-size:13px;color:var(--muted);">Último paso</span>
+    </div>
+    <div class="s02-title">Un poco más sobre vos</div>
+    <div class="s02-sub">Para calcular tus calorías personalizadas. Solo lo ve el Dr. Alfaro.</div>
+  </div>
+
+  <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto;padding-bottom:100px;">
+
+    <!-- Sexo biológico — formulación cuidadosa -->
+    <div class="s02-field-group">
+      <div class="s02-field-label">¿Cómo es tu fisiología? <span style="color:var(--brasa);">*</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Esta información es necesaria para calcular tu metabolismo basal con precisión médica.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label id="lbl-fisio-m" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;" onclick="selectFisio('M')">
+          <div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;" id="radio-M">
+            <div style="width:10px;height:10px;border-radius:50%;background:transparent;" id="dot-M"></div>
+          </div>
+          <span style="font-size:14px;color:var(--night);">Fisiología masculina</span>
+        </label>
+        <label id="lbl-fisio-f" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;" onclick="selectFisio('F')">
+          <div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;" id="radio-F">
+            <div style="width:10px;height:10px;border-radius:50%;background:transparent;" id="dot-F"></div>
+          </div>
+          <span style="font-size:14px;color:var(--night);">Fisiología femenina</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Edad -->
+    <div class="s02-field-group">
+      <div class="s02-field-label">Edad</div>
+      <input class="input-field" id="calc-edad" type="number" placeholder="34" min="18" max="99"/>
+    </div>
+
+    <!-- Exclusiones — solo aparecen si fisiología femenina -->
+    <div id="exclusiones-femeninas" style="display:none;">
+      <div style="background:rgba(232,160,48,.08);border:1px solid rgba(232,160,48,.2);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:10px;">Para ofrecerte una estimación segura, necesitamos saber si alguna de estas situaciones se aplica:</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="exc-embarazo" style="accent-color:var(--gold);width:16px;height:16px;"/>
+            <span style="font-size:13px;color:var(--night);">Embarazo</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="exc-lactancia" style="accent-color:var(--gold);width:16px;height:16px;"/>
+            <span style="font-size:13px;color:var(--night);">Lactancia</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exclusión TCA — ambos sexos -->
+    <div style="background:rgba(232,160,48,.08);border:1px solid rgba(232,160,48,.2);border-radius:14px;padding:14px 16px;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="exc-tca" style="accent-color:var(--gold);width:16px;height:16px;"/>
+        <span style="font-size:13px;color:var(--night);">Tengo o tuve diagnóstico o sospecha de trastorno de la conducta alimentaria (TCA)</span>
+      </label>
+    </div>
+
+    <!-- Resultado del calculador -->
+    <div id="calc-resultado" style="display:none;">
+      <div style="background:var(--night);border-radius:16px;padding:18px;">
+        <div style="font-size:10px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:12px;">🧮 Tu estimación personalizada</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div style="background:var(--night2);border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--gold);font-weight:700;" id="res-ger">—</div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">kcal en reposo</div>
+          </div>
+          <div style="background:var(--night2);border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--gold);font-weight:700;" id="res-get">—</div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">gasto total diario</div>
+          </div>
+        </div>
+        <div style="background:linear-gradient(135deg,var(--gold),var(--brasa));border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:11px;color:rgba(28,10,0,.7);font-weight:700;margin-bottom:4px;">🎯 OBJETIVO CALÓRICO</div>
+          <div style="font-family:'Playfair Display',serif;font-size:26px;color:var(--night);font-weight:800;" id="res-objetivo">—</div>
+          <div style="font-size:11px;color:rgba(28,10,0,.7);margin-top:2px;" id="res-rango">kcal/día</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.5;" id="res-nota">Esta es una orientación general. El Dr. Alfaro ajustará tu plan en la consulta.</div>
+      </div>
+    </div>
+
+    <!-- Exclusión activa -->
+    <div id="calc-exclusion" style="display:none;">
+      <div style="background:rgba(212,90,26,.08);border:1px solid rgba(212,90,26,.2);border-radius:16px;padding:18px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:10px;">🩺</div>
+        <div style="font-size:15px;font-weight:700;color:var(--night);margin-bottom:8px;">Necesitás una evaluación personalizada</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;">En esta situación, tus necesidades nutricionales requieren atención profesional individual. La estimación automática no es adecuada para vos. El Dr. Alfaro va a acompañarte de forma directa.</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);text-align:center;line-height:1.6;padding:0 8px;">
+      Esta herramienta ofrece una orientación general. No reemplaza una evaluación médica o nutricional profesional.
+    </div>
+
+  </div>
+
+  <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:390px;padding:16px 24px 32px;background:linear-gradient(to top,var(--cream) 80%,transparent);">
+    <button class="btn btn-gold" id="btn-calcular" onclick="calcularMifflin()">
+      🧮 &nbsp; Calcular mis calorías
+    </button>
+    <button class="btn btn-gold" id="btn-registrar" style="display:none;background:linear-gradient(135deg,var(--gold),var(--brasa));" onclick="registrarPaciente()">
+      Empezar mi plan 🎯
+    </button>
+  </div>
+</div>
 <div class="screen" id="s04">
   <div class="s04-header">
     <div class="status-bar" style="color:var(--muted); padding:0; height:auto; margin-bottom:8px; font-size:12px;">
@@ -1237,6 +1347,110 @@ function selectMood(el) {
   el.classList.add('active');
 }
 
+// ── CALCULADOR MIFFLIN-ST JEOR ─────────────────
+let fisioSeleccionada = null;
+
+function selectFisio(sexo) {
+  fisioSeleccionada = sexo;
+  ['M','F'].forEach(s => {
+    const lbl = document.getElementById(`lbl-fisio-${s}`);
+    const dot = document.getElementById(`dot-${s}`);
+    const radio = document.getElementById(`radio-${s}`);
+    if (s === sexo) {
+      lbl.style.borderColor = 'var(--gold)';
+      dot.style.background = 'var(--gold)';
+      radio.style.borderColor = 'var(--gold)';
+    } else {
+      lbl.style.borderColor = 'var(--border)';
+      dot.style.background = 'transparent';
+      radio.style.borderColor = 'var(--border)';
+    }
+  });
+  const excF = document.getElementById('exclusiones-femeninas');
+  if (excF) excF.style.display = sexo === 'F' ? 'block' : 'none';
+}
+
+function calcularMifflin() {
+  const inputs03 = document.querySelectorAll('#s03 input[type="number"]');
+  const peso = parseFloat(inputs03[0]?.value);
+  const altura = parseFloat(inputs03[1]?.value);
+  const edad = parseFloat(document.getElementById('calc-edad')?.value);
+
+  if (!fisioSeleccionada) { toast('Seleccioná tu fisiología', 'warn'); return; }
+  if (!edad || edad < 18) { toast('Ingresá tu edad (mayor de 18)', 'warn'); return; }
+  if (!peso || !altura) { toast('Completá peso y altura en el paso anterior', 'warn'); return; }
+
+  const excEmbarazo = document.getElementById('exc-embarazo')?.checked;
+  const excLactancia = document.getElementById('exc-lactancia')?.checked;
+  const excTCA = document.getElementById('exc-tca')?.checked;
+
+  const resultadoDiv = document.getElementById('calc-resultado');
+  const exclusionDiv = document.getElementById('calc-exclusion');
+  const btnCalcular = document.getElementById('btn-calcular');
+  const btnRegistrar = document.getElementById('btn-registrar');
+
+  if (excEmbarazo || excLactancia || excTCA) {
+    resultadoDiv.style.display = 'none';
+    exclusionDiv.style.display = 'block';
+    btnCalcular.style.display = 'none';
+    btnRegistrar.style.display = 'block';
+    btnRegistrar.style.background = 'linear-gradient(135deg,var(--brasa),#8B3A1A)';
+    btnRegistrar.textContent = 'Continuar con el Dr. Alfaro →';
+    return;
+  }
+
+  let ger;
+  if (fisioSeleccionada === 'M') {
+    ger = (10 * peso) + (6.25 * altura) - (5 * edad) + 5;
+  } else {
+    ger = (10 * peso) + (6.25 * altura) - (5 * edad) - 161;
+  }
+
+  const actRadio = document.querySelector('#s03 input[type="radio"]:checked');
+  const actTexto = actRadio?.parentElement?.querySelector('span')?.textContent || '';
+  let factorActividad = 1.375;
+  if (actTexto.includes('Sedentario')) factorActividad = 1.20;
+  else if (actTexto.includes('1-3')) factorActividad = 1.375;
+  else if (actTexto.includes('4+')) factorActividad = 1.55;
+
+  const get = ger * factorActividad;
+  const objChip = document.querySelector('#s03 .chip.active');
+  const objetivo = objChip?.textContent?.trim() || 'Bajar de peso';
+
+  let calObjetivo, rango, nota;
+  if (objetivo.includes('Bajar')) {
+    const deficit = Math.min(500, get * 0.20);
+    calObjetivo = get - deficit;
+    const min = Math.round((calObjetivo - 100) / 50) * 50;
+    const max = Math.round((calObjetivo + 100) / 50) * 50;
+    rango = `Rango orientativo: ${min} – ${max} kcal/día`;
+    nota = 'Déficit controlado para bajar de peso de forma saludable y sostenible.';
+  } else {
+    calObjetivo = get;
+    const min = Math.round((calObjetivo - 100) / 50) * 50;
+    const max = Math.round((calObjetivo + 100) / 50) * 50;
+    rango = `Rango orientativo: ${min} – ${max} kcal/día`;
+    nota = 'Calorías de mantenimiento según tu nivel de actividad actual.';
+  }
+
+  calObjetivo = Math.round(calObjetivo / 50) * 50;
+
+  document.getElementById('res-ger').textContent = Math.round(ger);
+  document.getElementById('res-get').textContent = Math.round(get);
+  document.getElementById('res-objetivo').textContent = calObjetivo;
+  document.getElementById('res-rango').textContent = rango;
+  document.getElementById('res-nota').textContent = nota;
+
+  resultadoDiv.style.display = 'block';
+  exclusionDiv.style.display = 'none';
+  btnCalcular.style.display = 'none';
+  btnRegistrar.style.display = 'block';
+
+  window._caloriasObjetivo = calObjetivo;
+  window._fisio = fisioSeleccionada;
+  window._get = Math.round(get);
+}
+
 function selectProfile(el) {
   document.querySelectorAll('.profile-type-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
@@ -1427,12 +1641,29 @@ async function loginPaciente() {
     const userId = data.user?.id;
     const token = data.access_token;
 
-    // Buscar perfil por user_id
-    const perfilesRes = await fetch(
+    // Buscar perfil por user_id primero, luego por email como fallback
+    let perfilesRes = await fetch(
       `${SUPA_URL}/rest/v1/pacientes?user_id=eq.${userId}&select=*&limit=1`,
       { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` } }
     );
-    const perfiles = await perfilesRes.json();
+    let perfiles = await perfilesRes.json();
+    
+    // Fallback: buscar por email si no encuentra por user_id
+    if (!perfiles?.[0]) {
+      perfilesRes = await fetch(
+        `${SUPA_URL}/rest/v1/pacientes?email=eq.${encodeURIComponent(email)}&select=*&limit=1`,
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` } }
+      );
+      perfiles = await perfilesRes.json();
+      // Actualizar user_id si lo encontró por email
+      if (perfiles?.[0]) {
+        await fetch(`${SUPA_URL}/rest/v1/pacientes?id=eq.${perfiles[0].id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ user_id: userId })
+        });
+      }
+    }
     const perfil = perfiles?.[0];
 
     sesion.paciente_id = userId;
